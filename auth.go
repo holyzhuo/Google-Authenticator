@@ -17,6 +17,12 @@ import (
 	"math/rand"
 )
 
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const (
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+)
 
 // ComputeCode computes the response code for a 64-bit challenge 'value' using the secret 'secret'.
 // To avoid breaking compatibility with the previous API, it returns an invalid code (-1) when an error occurs,
@@ -61,11 +67,29 @@ func GenSecretKey() (string, error) {
 	}
 	h := hmac.New(func() hash.Hash { return hmacHash }, buf.Bytes())
 
-	hSum := fmt.Sprintf("%x", h.Sum(nil)) + strconv.Itoa(rand.Intn(10000))
+	hSum := fmt.Sprintf("%x", h.Sum(nil)) + RandStringBytesMaskImpr(5)
 	secKey := base32.StdEncoding.EncodeToString([]byte(hSum))
 
 	return secKey, nil
 }
+
+func RandStringBytesMaskImpr(n int) string {
+	b := make([]byte, n)
+	// A rand.Int63() generates 63 random bits, enough for letterIdxMax letters!
+	for i, cache, remain := n-1, rand.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = rand.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
+	return string(b)
+}
+
 
 // ErrInvalidCode indicate the supplied one-time code was not valid
 var (
