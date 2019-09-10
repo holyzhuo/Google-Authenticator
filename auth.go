@@ -17,6 +17,7 @@ import (
 	"math/rand"
 )
 
+var src = rand.NewSource(time.Now().UnixNano())
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const (
 	letterIdxBits = 6                    // 6 bits to represent a letter index
@@ -67,18 +68,18 @@ func GenSecretKey() (string, error) {
 	}
 	h := hmac.New(func() hash.Hash { return hmacHash }, buf.Bytes())
 
-	hSum := fmt.Sprintf("%x", h.Sum(nil)) + RandStringBytesMaskImpr(5)
+	hSum := fmt.Sprintf("%x", h.Sum(nil)) + RandStringBytesMaskImprSrc(5)
 	secKey := base32.StdEncoding.EncodeToString([]byte(hSum))
 
 	return secKey, nil
 }
 
-func RandStringBytesMaskImpr(n int) string {
+func RandStringBytesMaskImprSrc(n int) string {
 	b := make([]byte, n)
-	// A rand.Int63() generates 63 random bits, enough for letterIdxMax letters!
-	for i, cache, remain := n-1, rand.Int63(), letterIdxMax; i >= 0; {
+	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
+	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
 		if remain == 0 {
-			cache, remain = rand.Int63(), letterIdxMax
+			cache, remain = src.Int63(), letterIdxMax
 		}
 		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
 			b[i] = letterBytes[idx]
@@ -87,9 +88,9 @@ func RandStringBytesMaskImpr(n int) string {
 		cache >>= letterIdxBits
 		remain--
 	}
+
 	return string(b)
 }
-
 
 // ErrInvalidCode indicate the supplied one-time code was not valid
 var (
